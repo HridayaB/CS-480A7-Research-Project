@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
+import sys
 from scipy import stats
 
 warnings.filterwarnings('ignore')
@@ -29,8 +30,8 @@ def calculate_summary_statistics(df):
     }).round(4)
     return summary
 
-# Calculate coeficient of variation for performance consistency
-def calculate_coeficient_of_variation(df):
+# Calculate coefficient of variation for performance consistency
+def calculate_coefficient_of_variation(df):
     cv_data = []
     for (language, task, input_size), group in df.groupby(['language', 'task', 'input_size']):
         time_cv = (group['execution_time'].std() / group['execution_time'].mean()) * 100
@@ -91,7 +92,7 @@ def create_boxplots(df, output_prefix):
     plt.close()
 
     # Performance Consistency Boxplot
-    cv_df = calculate_coeficient_of_variation(df)
+    cv_df = calculate_coefficient_of_variation(df)
     plt.figure(figsize=(12, 8))
     sns.boxplot(data=cv_df, x='task', y='time_cv', hue='language')
     plt.title('Performance Consistency (Coefficient of Variation) by Data Processing Task and Programming Language')
@@ -102,52 +103,95 @@ def create_boxplots(df, output_prefix):
     plt.savefig(f'{output_prefix}_performance_consistency_boxplot.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+# Helper class to save report to file
+class ReportSaver:
+    def __init__(self, filename):
+        self.terminal = sys.stdout
+        self.log = open(filename, 'w')
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+    
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+    
+    def close(self):
+        self.log.close()
+
 # Generate report
 def generate_report(df, os_name, output_prefix):
-    print(f"\n{'=' * 60}")
-    print(f"Data Analysis Report for {os_name}")
-    print(f"{'=' * 60}")
+    report_lines = []
+    
+    report_lines.append(f"\n{'=' * 60}")
+    report_lines.append(f"Data Analysis Report for {os_name}")
+    report_lines.append(f"{'=' * 60}")
+
+    # Dataset Overview
+    report_lines.append("\nDataset Overview:")
+    report_lines.append('-' * 40)
+    report_lines.append(f"Total records: {len(df)}")
+    report_lines.append(f"Languages: {', '.join(df['language'].unique())}")
+    report_lines.append(f"Tasks: {', '.join(df['task'].unique())}")
+    report_lines.append(f"Input sizes: {', '.join(map(str, sorted(df['input_size'].unique())))}")
 
     # Summary Statistics
-    print("\n1. Summary Statistics:")
-    print('-' * 40)
+    report_lines.append("\n1. Summary Statistics:")
+    report_lines.append('-' * 40)
     summary_stats = calculate_summary_statistics(df)
-    print(summary_stats)
+    report_lines.append(summary_stats.to_string())
 
     # Performance Consistency
-    print("\n2. Performance Consistency (Coefficient of Variation):")
-    print('-' * 60)
-    cv_df = calculate_coeficient_of_variation(df)
-    print("Lower CV Percentage = More Consistent Performance")
-    print(cv_df.round(2))
+    report_lines.append("\n2. Performance Consistency (Coefficient of Variation):")
+    report_lines.append('-' * 60)
+    cv_df = calculate_coefficient_of_variation(df)
+    report_lines.append("Lower CV Percentage = More Consistent Performance")
+    report_lines.append(cv_df.round(2).to_string())
 
     # ANOVA Test Results
-    print("\n3. Statistical Significance (ANOVA Test):")
-    print('-' * 40)
-    anova_dv = perform_anova_test(df)
-    if not anova_dv.empty:
-        print("A p-value < 0.05 indicates that the programming language choice sifnificantly affects performance.")
-        print(anova_dv.round(4))
+    report_lines.append("\n3. Statistical Significance (ANOVA Test):")
+    report_lines.append('-' * 40)
+    anova_df = perform_anova_test(df)
+    if not anova_df.empty:
+        report_lines.append("A p-value < 0.05 indicates that the programming language choice significantly affects performance.")
+        report_lines.append(anova_df.round(4).to_string())
     else:
-        print("Not enough language variety to perform ANOVA tests.")
+        report_lines.append("Not enough language variety to perform ANOVA tests.")
     
     # Key Findings
-    print("\n4. Key Findings:")
-    print('-' * 40)
+    report_lines.append("\n4. Key Findings:")
+    report_lines.append('-' * 40)
     fastest_langs_by_task = df.groupby(['task']).apply(lambda x: x.loc[x['execution_time'].idxmin(), 'language'])
-    print("Fastest Language by Task:")
+    report_lines.append("Fastest Language by Task:")
     for task, lang in fastest_langs_by_task.items():
-        print(f" - {task}: {lang}")
-    most_consistent_langs_by_task = cv_df.groupby('language')['time_cv'].mean().sort_values()
-    print(f"\nMost consistent language (lowest avg CV): {most_consistent_langs_by_task.index[0]} ({most_consistent_langs_by_task.iloc[0]:.1f}%)")
-    print(f"Least consistent language (highest avg CV): {most_consistent_langs_by_task.index[-1]} ({most_consistent_langs_by_task.iloc[-1]:.1f}%)")
+        report_lines.append(f" - {task}: {lang}")
+    
+    most_consistent_langs = cv_df.groupby('language')['time_cv'].mean().sort_values()
+    report_lines.append(f"\nMost consistent language (lowest avg CV): {most_consistent_langs.index[0]} ({most_consistent_langs.iloc[0]:.1f}%)")
+    report_lines.append(f"Least consistent language (highest avg CV): {most_consistent_langs.index[-1]} ({most_consistent_langs.iloc[-1]:.1f}%)")
+
+    # Save report to file
+    report_filename = f'{output_prefix}_report.txt'
+    with open(report_filename, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(report_lines))
+
+    # Print to console
+    print('\n'.join(report_lines))
+
+    return report_filename
 
 # Main function
 def main(csv_file, os_name, output_prefix):
+    console_log_file = f'{output_prefix}_console_output.txt'
+    saver = ReportSaver(console_log_file)
+    sys.stdout = saver
     df = load_and_clean_data(csv_file)
     create_boxplots(df, output_prefix)
     generate_report(df, os_name, output_prefix)
     df.to_csv(f'{output_prefix}_processed_data.csv', index=False)
+    sys.stdout = saver.terminal
+    saver.close()
     return df
 
 if __name__ == "__main__":
