@@ -1,0 +1,77 @@
+
+============================================================
+Cross Operating System Data Analysis Report
+============================================================
+
+Dataset Overview:
+----------------------------------------
+Total records: 320
+Operating Systems: Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3
+Languages: C
+Tasks: binarytrees, fannkuchredux, fasta, mandelbrot
+
+Cross-OS Performance Consistency:
+------------------------------------------------------------
+Lower Cross-OS CV = More Consistent Performance Across Operating Systems
+  language           task  input_size    task_with_size  cross_os_cv  os_count                                                                                              os_list  time_range                     fastest_os                     slowest_os
+5        C          fasta    25000000    fasta-25000000         1.26         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.15  Manjaro GNOME 25.0.10 Minimal          Manjaro GNOME 25.0.10
+3        C  fannkuchredux          12  fannkuchredux-12         1.85         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        1.17          Ubuntu Server 24.04.3  Manjaro GNOME 25.0.10 Minimal
+2        C  fannkuchredux          10  fannkuchredux-10         4.59         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.02          Ubuntu Server 24.04.3          Manjaro GNOME 25.0.10
+4        C          fasta      250000      fasta-250000         6.08         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.01         Ubuntu Desktop 24.04.3          Manjaro GNOME 25.0.10
+1        C    binarytrees          21    binarytrees-21         7.38         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.85  Manjaro GNOME 25.0.10 Minimal          Ubuntu Server 24.04.3
+7        C     mandelbrot       16000  mandelbrot-16000        15.80         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        1.58         Ubuntu Desktop 24.04.3          Manjaro GNOME 25.0.10
+6        C     mandelbrot        1000   mandelbrot-1000        19.64         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.01         Ubuntu Desktop 24.04.3          Manjaro GNOME 25.0.10
+0        C    binarytrees           7     binarytrees-7        32.44         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.01          Ubuntu Server 24.04.3          Manjaro GNOME 25.0.10
+
+Key Cross-OS Findings:
+----------------------------------------
+Most consistent across OSs: C - fasta (CV: 1.26%)
+Least consistent across OSs: C - binarytrees (CV: 32.44%)
+
+OS Performance Rankings:
+1. Ubuntu Desktop 24.04.3: 5.72s average
+2. Ubuntu Server 24.04.3: 5.74s average
+3. Manjaro GNOME 25.0.10: 5.92s average
+4. Manjaro GNOME 25.0.10 Minimal: 5.95s average
+
+1. Summary Statistics:
+----------------------------------------
+                                  execution_time                           memory_mb                             cpu_time        
+                                            mean     std      min      max      mean     std       min       max     mean     std
+language task          input_size                                                                                                
+C        binarytrees   7                  0.0091  0.0043   0.0049   0.0244   10.0118  0.4291    9.1172   10.4414   0.0061  0.0026
+                       21                 6.1150  0.5210   5.3778   7.6105  343.0130  0.0980  342.8672  343.1250  19.2122  1.2881
+         fannkuchredux 10                 0.2001  0.0091   0.1874   0.2194   10.0632  0.4611    9.1055   10.4414   0.1964  0.0076
+                       12                29.3768  0.5584  28.4685  30.3857   10.0861  0.4608    9.2578   10.4414  29.3715  0.5562
+         fasta         250000             0.0642  0.0055   0.0571   0.0842   10.0503  0.4585    9.1641   10.4414   0.0606  0.0045
+                       25000000           5.3301  0.0774   5.1055   5.4400   10.0715  0.4790    9.1016   10.4414   5.3256  0.0779
+         mandelbrot    1000               0.0324  0.0059   0.0248   0.0424   10.0282  0.4398    9.1445   10.4414   0.0293  0.0049
+                       16000              5.5399  0.7705   4.6365   6.4359   32.2754  0.1902   32.0508   32.4688   5.5360  0.7693
+
+2. Performance Consistency (Coefficient of Variation):
+------------------------------------------------------------
+Lower CV Percentage = More Consistent Performance
+  language           task  input_size    task_with_size  time_cv  memory_cv  time_std  time_mean
+0        C    binarytrees           7     binarytrees-7    46.49       4.29      0.00       0.01
+1        C    binarytrees          21    binarytrees-21     8.52       0.03      0.52       6.11
+2        C  fannkuchredux          10  fannkuchredux-10     4.56       4.58      0.01       0.20
+3        C  fannkuchredux          12  fannkuchredux-12     1.90       4.57      0.56      29.38
+4        C          fasta      250000      fasta-250000     8.55       4.56      0.01       0.06
+5        C          fasta    25000000    fasta-25000000     1.45       4.76      0.08       5.33
+6        C     mandelbrot        1000   mandelbrot-1000    18.29       4.39      0.01       0.03
+7        C     mandelbrot       16000  mandelbrot-16000    13.91       0.59      0.77       5.54
+
+3. Statistical Significance (ANOVA Test):
+----------------------------------------
+Not enough language variety to perform ANOVA tests.
+
+4. Key Findings:
+----------------------------------------
+Fastest Language by Task:
+ - binarytrees: C
+ - fannkuchredux: C
+ - fasta: C
+ - mandelbrot: C
+
+Most consistent language (lowest avg CV): C (13.0%)
+Least consistent language (highest avg CV): C (13.0%)
