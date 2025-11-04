@@ -1,0 +1,77 @@
+
+============================================================
+Cross Operating System Data Analysis Report
+============================================================
+
+Dataset Overview:
+----------------------------------------
+Total records: 314
+Operating Systems: Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3
+Languages: Python 3
+Tasks: binarytrees, fannkuchredux, fasta, mandelbrot
+
+Cross-OS Performance Consistency:
+------------------------------------------------------------
+Lower Cross-OS CV = More Consistent Performance Across Operating Systems
+   language           task  input_size    task_with_size  cross_os_cv  os_count                                                                                              os_list  time_range              fastest_os                     slowest_os
+3  Python 3  fannkuchredux          12  fannkuchredux-12         4.36         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3      123.58   Ubuntu Server 24.04.3         Ubuntu Desktop 24.04.3
+2  Python 3  fannkuchredux          10  fannkuchredux-10         6.53         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.97  Ubuntu Desktop 24.04.3          Manjaro GNOME 25.0.10
+7  Python 3     mandelbrot       16000  mandelbrot-16000        10.72         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3      241.07   Manjaro GNOME 25.0.10          Ubuntu Server 24.04.3
+6  Python 3     mandelbrot        1000   mandelbrot-1000        12.74         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        1.20   Ubuntu Server 24.04.3         Ubuntu Desktop 24.04.3
+4  Python 3          fasta      250000      fasta-250000        14.27         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.31   Ubuntu Server 24.04.3         Ubuntu Desktop 24.04.3
+0  Python 3    binarytrees           7     binarytrees-7        24.27         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3        0.07   Ubuntu Server 24.04.3  Manjaro GNOME 25.0.10 Minimal
+1  Python 3    binarytrees          21    binarytrees-21        39.89         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3       17.92  Ubuntu Desktop 24.04.3          Ubuntu Server 24.04.3
+5  Python 3          fasta    25000000    fasta-25000000        88.43         4  Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3      313.84   Manjaro GNOME 25.0.10          Ubuntu Server 24.04.3
+
+Key Cross-OS Findings:
+----------------------------------------
+Most consistent across OSs: Python 3 - fannkuchredux (CV: 4.36%)
+Least consistent across OSs: Python 3 - fasta (CV: 88.43%)
+
+OS Performance Rankings:
+1. Ubuntu Server 24.04.3: 275.08s average
+2. Manjaro GNOME 25.0.10: 281.42s average
+3. Manjaro GNOME 25.0.10 Minimal: 285.31s average
+4. Ubuntu Desktop 24.04.3: 312.65s average
+
+1. Summary Statistics:
+----------------------------------------
+                                  execution_time                                 memory_mb                               cpu_time          
+                                            mean       std        min        max      mean     std       min       max       mean       std
+language task          input_size                                                                                                          
+Python 3 binarytrees   7                  0.1327    0.0315     0.0864     0.2204   15.0776  0.9184   13.9883   16.1445     0.0955    0.0145
+                       21                21.6126    9.9772    16.1205    48.5663  269.3759  0.6313  268.6367  270.2852   134.6720   81.9848
+         fannkuchredux 10                 6.7267    0.6123     5.8844     8.7973   10.1756  0.4300    9.4258   10.5000     6.7128    0.6102
+                       12              1166.2178   73.3383  1055.2641  1453.8988   10.1814  0.4564    9.3750   10.5000  1166.1998   73.3534
+         fasta         250000             0.9663    0.1853     0.7939     1.5089   10.2769  0.4949    9.4141   10.6172     0.9542    0.1858
+                       25000000         172.4028  503.5119    76.5155  3275.5464   10.2525  0.4908    9.2617   10.6172   172.4075  503.5192
+         mandelbrot    1000               3.8983    0.5067     3.2247     5.1254   10.2364  0.4755    9.4062   10.6172     3.8870    0.5066
+                       16000           1053.7924  103.7694   941.8016  1246.8943   10.1765  0.4964    9.3867   10.6172  1053.7501  103.7867
+
+2. Performance Consistency (Coefficient of Variation):
+------------------------------------------------------------
+Lower CV Percentage = More Consistent Performance
+   language           task  input_size    task_with_size  time_cv  memory_cv  time_std  time_mean
+0  Python 3    binarytrees           7     binarytrees-7    23.74       6.09      0.03       0.13
+1  Python 3    binarytrees          21    binarytrees-21    46.16       0.23      9.98      21.61
+2  Python 3  fannkuchredux          10  fannkuchredux-10     9.10       4.23      0.61       6.73
+3  Python 3  fannkuchredux          12  fannkuchredux-12     6.29       4.48     73.34    1166.22
+4  Python 3          fasta      250000      fasta-250000    19.17       4.82      0.19       0.97
+5  Python 3          fasta    25000000    fasta-25000000   292.06       4.79    503.51     172.40
+6  Python 3     mandelbrot        1000   mandelbrot-1000    13.00       4.65      0.51       3.90
+7  Python 3     mandelbrot       16000  mandelbrot-16000     9.85       4.88    103.77    1053.79
+
+3. Statistical Significance (ANOVA Test):
+----------------------------------------
+Not enough language variety to perform ANOVA tests.
+
+4. Key Findings:
+----------------------------------------
+Fastest Language by Task:
+ - binarytrees: Python 3
+ - fannkuchredux: Python 3
+ - fasta: Python 3
+ - mandelbrot: Python 3
+
+Most consistent language (lowest avg CV): Python 3 (52.4%)
+Least consistent language (highest avg CV): Python 3 (52.4%)

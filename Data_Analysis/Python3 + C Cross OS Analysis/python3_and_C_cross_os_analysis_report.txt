@@ -1,0 +1,83 @@
+
+============================================================
+Cross Operating System Data Analysis Report
+============================================================
+
+Dataset Overview:
+----------------------------------------
+Total records: 634
+Operating Systems: combined_C_data.csv, combined_python_data.csv
+Languages: C, Python 3
+Tasks: binarytrees, fannkuchredux, fasta, mandelbrot
+
+Cross-OS Performance Consistency:
+------------------------------------------------------------
+Lower Cross-OS CV = More Consistent Performance Across Operating Systems
+Not enough cross-OS data for analysis.
+
+1. Summary Statistics:
+----------------------------------------
+                                  execution_time                                 memory_mb                               cpu_time          
+                                            mean       std        min        max      mean     std       min       max       mean       std
+language task          input_size                                                                                                          
+C        binarytrees   7                  0.0091    0.0043     0.0049     0.0244   10.0118  0.4291    9.1172   10.4414     0.0061    0.0026
+                       21                 6.1150    0.5210     5.3778     7.6105  343.0130  0.0980  342.8672  343.1250    19.2122    1.2881
+         fannkuchredux 10                 0.2001    0.0091     0.1874     0.2194   10.0632  0.4611    9.1055   10.4414     0.1964    0.0076
+                       12                29.3768    0.5584    28.4685    30.3857   10.0861  0.4608    9.2578   10.4414    29.3715    0.5562
+         fasta         250000             0.0642    0.0055     0.0571     0.0842   10.0503  0.4585    9.1641   10.4414     0.0606    0.0045
+                       25000000           5.3301    0.0774     5.1055     5.4400   10.0715  0.4790    9.1016   10.4414     5.3256    0.0779
+         mandelbrot    1000               0.0324    0.0059     0.0248     0.0424   10.0282  0.4398    9.1445   10.4414     0.0293    0.0049
+                       16000              5.5399    0.7705     4.6365     6.4359   32.2754  0.1902   32.0508   32.4688     5.5360    0.7693
+Python 3 binarytrees   7                  0.1327    0.0315     0.0864     0.2204   15.0776  0.9184   13.9883   16.1445     0.0955    0.0145
+                       21                21.6126    9.9772    16.1205    48.5663  269.3759  0.6313  268.6367  270.2852   134.6720   81.9848
+         fannkuchredux 10                 6.7267    0.6123     5.8844     8.7973   10.1756  0.4300    9.4258   10.5000     6.7128    0.6102
+                       12              1166.2178   73.3383  1055.2641  1453.8988   10.1814  0.4564    9.3750   10.5000  1166.1998   73.3534
+         fasta         250000             0.9663    0.1853     0.7939     1.5089   10.2769  0.4949    9.4141   10.6172     0.9542    0.1858
+                       25000000         172.4028  503.5119    76.5155  3275.5464   10.2525  0.4908    9.2617   10.6172   172.4075  503.5192
+         mandelbrot    1000               3.8983    0.5067     3.2247     5.1254   10.2364  0.4755    9.4062   10.6172     3.8870    0.5066
+                       16000           1053.7924  103.7694   941.8016  1246.8943   10.1765  0.4964    9.3867   10.6172  1053.7501  103.7867
+
+2. Performance Consistency (Coefficient of Variation):
+------------------------------------------------------------
+Lower CV Percentage = More Consistent Performance
+    language           task  input_size    task_with_size  time_cv  memory_cv  time_std  time_mean
+0          C    binarytrees           7     binarytrees-7    46.49       4.29      0.00       0.01
+1          C    binarytrees          21    binarytrees-21     8.52       0.03      0.52       6.11
+2          C  fannkuchredux          10  fannkuchredux-10     4.56       4.58      0.01       0.20
+3          C  fannkuchredux          12  fannkuchredux-12     1.90       4.57      0.56      29.38
+4          C          fasta      250000      fasta-250000     8.55       4.56      0.01       0.06
+5          C          fasta    25000000    fasta-25000000     1.45       4.76      0.08       5.33
+6          C     mandelbrot        1000   mandelbrot-1000    18.29       4.39      0.01       0.03
+7          C     mandelbrot       16000  mandelbrot-16000    13.91       0.59      0.77       5.54
+8   Python 3    binarytrees           7     binarytrees-7    23.74       6.09      0.03       0.13
+9   Python 3    binarytrees          21    binarytrees-21    46.16       0.23      9.98      21.61
+10  Python 3  fannkuchredux          10  fannkuchredux-10     9.10       4.23      0.61       6.73
+11  Python 3  fannkuchredux          12  fannkuchredux-12     6.29       4.48     73.34    1166.22
+12  Python 3          fasta      250000      fasta-250000    19.17       4.82      0.19       0.97
+13  Python 3          fasta    25000000    fasta-25000000   292.06       4.79    503.51     172.40
+14  Python 3     mandelbrot        1000   mandelbrot-1000    13.00       4.65      0.51       3.90
+15  Python 3     mandelbrot       16000  mandelbrot-16000     9.85       4.88    103.77    1053.79
+
+3. Statistical Significance (ANOVA Test):
+----------------------------------------
+A p-value < 0.05 indicates that the programming language choice significantly affects performance.
+            task  input_size  f_statistic  p_value  significant  languages_compared
+0    binarytrees           7     604.0576   0.0000         True                   2
+1    binarytrees          21      96.2478   0.0000         True                   2
+2  fannkuchredux          10    4543.4266   0.0000         True                   2
+3  fannkuchredux          12    9611.0935   0.0000         True                   2
+4          fasta      250000     947.6822   0.0000         True                   2
+5          fasta    25000000       4.4040   0.0391         True                   2
+6     mandelbrot        1000    2328.0795   0.0000         True                   2
+7     mandelbrot       16000    4091.5794   0.0000         True                   2
+
+4. Key Findings:
+----------------------------------------
+Fastest Language by Task:
+ - binarytrees: C
+ - fannkuchredux: C
+ - fasta: C
+ - mandelbrot: C
+
+Most consistent language (lowest avg CV): C (13.0%)
+Least consistent language (highest avg CV): Python 3 (52.4%)
