@@ -26,192 +26,253 @@ def load_and_clean_data(filename):
 # Calculate Cross-OS Consistency
 def calculate_cross_os_consistency(df):
     cross_os_results = []
+    metrics = ['execution_time', 'memory_mb']
+
     for (language, task, input_size), group in df.groupby(['language', 'task', 'input_size']):
         if len(group['os'].unique()) > 1:
-            os_means = group.groupby('os')['execution_time'].mean()   
-            if os_means.mean() > 0:
-                cross_os_cv = (os_means.std() / os_means.mean()) * 100
-            else:
-                cross_os_cv = 0
-            cross_os_results.append({
+            result = {
                 'language': language,
                 'task': task,
                 'input_size': input_size,
                 'task_with_size': f"{task}-{input_size}",
-                'cross_os_cv': cross_os_cv,
                 'os_count': len(group['os'].unique()),
-                'os_list': ', '.join(group['os'].unique()),
-                'time_range': os_means.max() - os_means.min(),
-                'fastest_os': os_means.idxmin(),
-                'slowest_os': os_means.idxmax()
-            })
-    return pd.DataFrame(cross_os_results)
+                'os_list': ', '.join(group['os'].unique())
+            }
+            
+            for metric in metrics:
+                os_means = group.groupby('os')[metric].mean()  
+                if os_means.mean() > 0:
+                    cross_os_cv = (os_means.std() / os_means.mean()) * 100
+                    range_pct = ((os_means.max() - os_means.min()) / os_means.mean()) * 100
+                else:
+                    cross_os_cv = 0
+                    range_pct = 0
 
-# Calculate summary statistics
-def calculate_summary_statistics(df):
-    summary = df.groupby(['language', 'task', 'input_size']).agg({
-        'execution_time': ['mean', 'std', 'min', 'max'],
-        'memory_mb': ['mean', 'std', 'min', 'max'],
-        'cpu_time': ['mean', 'std']
-    }).round(4)
-    return summary
+                result[f'{metric}_cv'] = cross_os_cv
+                result[f'{metric}_range_pct'] = range_pct
+                result[f'{metric}_min_os'] = os_means.idxmin()
+                result[f'{metric}_max_os'] = os_means.idxmax()
+                result[f'{metric}_min_value'] = os_means.min()
+                result[f'{metric}_max_value'] = os_means.max()
+                result[f'{metric}_os_means_mean'] = os_means.mean()
+            cross_os_results.append(result)
+
+    return pd.DataFrame(cross_os_results)
 
 # Calculate coefficient of variation for performance consistency
 def calculate_coefficient_of_variation(df):
     cv_data = []
-    for (language, task, input_size), group in df.groupby(['language', 'task', 'input_size']):
-        if group['execution_time'].mean() > 0:
-            time_cv = (group['execution_time'].std() / group['execution_time'].mean()) * 100
-        else:
-            time_cv = 0
-        if group['memory_mb'].mean() > 0:
-            memory_cv = (group['memory_mb'].std() / group['memory_mb'].mean()) * 100
-        else:
-            memory_cv = 0    
-        cv_data.append({
+    metrics = ['execution_time', 'memory_mb']
+
+    for (language, task, input_size, os), group in df.groupby(['language', 'task', 'input_size', 'os']):
+        result = {
             'language': language,
             'task': task,
             'input_size': input_size,
+            'os': os,
             'task_with_size': f"{task}-{input_size}",
-            'time_cv': time_cv,
-            'memory_cv': memory_cv,
-            'time_std': group['execution_time'].std(),
-            'time_mean': group['execution_time'].mean(),
-        })
-    return pd.DataFrame(cv_data)
+            'sample_size': len(group)
+        }
+        
+        for metric in metrics:
+            values = group[metric].dropna()
+            if len(values) > 1 and values.mean() > 0:
+                cv = (values.std() / values.mean()) * 100
+            else:
+                cv = 0
+            result[f'{metric}_cv'] = cv
+            result[f'{metric}_mean'] = values.mean()
+            result[f'{metric}_std'] = values.std()
+        
+        cv_data.append(result)
     
-# ANOVA test for statistical significance
-def perform_anova_test(df):
-    anova_results = []
-    for task in df['task'].unique():
-        task_data = df[df['task'] == task]
-        for input_size in task_data['input_size'].unique():
-            size_data = task_data[task_data['input_size'] == input_size]
-            if len(size_data['language'].unique()) > 1:
-                groups = [group['execution_time'].values for name, group in size_data.groupby('language')]
+    return pd.DataFrame(cv_data)
+
+# Cross OS ANOVA test
+def perform_cross_os__tests(df):
+    results = []
+    metrics = ['execution_time', 'memory_mb']
+    
+    for metric in metrics:
+        for (language, task, input_size), group in df.groupby(['language', 'task', 'input_size']):
+            if len(group['os'].unique()) > 1:
+                # Prepare groups for ANOVA
+                groups = []
+                os_names = []
+                for os_name, os_group in group.groupby('os'):
+                    valid_values = os_group[metric].dropna()
+                    if len(valid_values) > 0:
+                        groups.append(valid_values)
+                        os_names.append(os_name)
+                
                 if len(groups) > 1:
+                    # ANOVA test
                     f_stat, p_val = stats.f_oneway(*groups)
-                    anova_results.append({
+                    
+                    # Kruskal-Wallis test (non-parametric alternative)
+                    try:
+                        h_stat, kw_p_val = stats.kruskal(*groups)
+                    except:
+                        h_stat, kw_p_val = np.nan, np.nan
+                    
+                    result = {
+                        'metric': metric,
+                        'language': language,
                         'task': task,
                         'input_size': input_size,
+                        'os_count': len(groups),
+                        'os_list': ', '.join(os_names),
                         'f_statistic': f_stat,
                         'p_value': p_val,
-                        'significant': p_val < 0.05,
-                        'languages_compared': len(size_data['language'].unique())
-                    })
-    return pd.DataFrame(anova_results)
-
-# Create boxplots for visualization
-def create_boxplots(df, output_prefix):
-    # Execution Time Boxplot
-    plt.figure(figsize=(12, 8))
-    sns.boxplot(data=df, x='task_with_size', y='execution_time', hue='language')
-    plt.title('Execution Time Distribution by Data Processing Task and Programming Language')
-    plt.xticks(rotation=45)
-    plt.ylabel('Execution Time (seconds)')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.savefig(f'{output_prefix}_execution_time_boxplot.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-    # Memory Usage Boxplot
-    plt.figure(figsize=(12, 8))
-    sns.boxplot(data=df, x='task_with_size', y='memory_mb', hue='language')
-    plt.title('Memory Usage Distribution by Data Processing Task and Programming Language')
-    plt.xticks(rotation=45)
-    plt.ylabel('Memory Usage (megabytes(MB))')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.savefig(f'{output_prefix}_memory_usage_boxplot.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-    # Performance Consistency Boxplot
-    cv_df = calculate_coefficient_of_variation(df)
-    plt.figure(figsize=(12, 8))
-    sns.boxplot(data=cv_df, x='task_with_size', y='time_cv', hue='language')
-    plt.title('Performance Consistency (Coefficient of Variation) by Data Processing Task and Input Size')
-    plt.ylabel('Coefficient of Variation (%)')
-    plt.xlabel('Task and Input Size')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.savefig(f'{output_prefix}_performance_consistency_boxplot.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-# Cross-OS Visualization
-def create_cross_os_plots(df, output_prefix):
-    # Execution Time across OSs
-    plt.figure(figsize=(20, 12))
-    task_sizes = sorted(df['task_with_size'].unique())
-    n_plots = len(task_sizes)
-    cols = 3
-    rows = (n_plots + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(18, 5 * rows))
-    axes = axes.flatten() if rows > 1 else [axes]
+                        'h_statistic': h_stat,
+                        'kw_p_value': kw_p_val,
+                        'significant_anova': p_val < 0.05,
+                        'significant_kw': kw_p_val < 0.05 if not np.isnan(kw_p_val) else False
+                    }
+                    
+                    results.append(result)
     
-    for i, task_size in enumerate(task_sizes):
-        if i < len(axes):
-            task_data = df[df['task_with_size'] == task_size]
-            sns.boxplot(data=task_data, x='os', y='execution_time', hue='language', ax=axes[i])
-            axes[i].set_title(f'{task_size}')
-            axes[i].set_ylabel('Execution Time (seconds)')
-            axes[i].tick_params(axis='x', rotation=45)
-            if i > 0:
-                axes[i].get_legend().remove()  
-    # Hide empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
-    plt.suptitle('Execution Time by OS and Language (Separated by Task and Input Size)', fontsize=16)
-    plt.tight_layout()
-    plt.savefig(f'{output_prefix}_cross_os_execution_time.png', dpi=300, bbox_inches='tight')
-    plt.close()
+    return pd.DataFrame(results)
 
-    # Performance Ranking Across OSs
-    performance_matrix = df.groupby(['language', 'task_with_size', 'os'])['execution_time'].mean().reset_index()
-    os_list = df['os'].unique()
-    n_os = len(os_list)
-    cols = min(3, n_os)
-    rows = (n_os + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(6 * cols, 5 * rows))
-    if rows == 1 and cols == 1:
-        axes = [axes]
-    else:
-        axes = axes.flatten()
-    
-    for i, os_name in enumerate(os_list):
-        if i < len(axes):
-            os_data = performance_matrix[performance_matrix['os'] == os_name]
-            heatmap_data = os_data.pivot_table(
-                values='execution_time', 
-                index='language', 
-                columns='task_with_size', 
-                aggfunc='mean'
-            ).fillna(0)
-            
-            sns.heatmap(heatmap_data, annot=True, fmt='.2f', cmap='viridis', ax=axes[i])
-            axes[i].set_title(f'Performance on {os_name}\n(Lower = Better)')
-    # Hide empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
-    plt.suptitle('Performance Ranking: Language vs Task-Size vs OS', fontsize=16)
-    plt.tight_layout()
-    plt.savefig(f'{output_prefix}_cross_os_performance_ranking.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-    # Cross-OS Consistency Heatmap
-    cross_os_df = calculate_cross_os_consistency(df)
-    if not cross_os_df.empty:
-        plt.figure(figsize=(16, 8))
+# Graph with OS, Language, and Task
+def create_comprehensive_plots(df, output_prefix):
+    # Multi-metric facet grid
+    metrics = ['execution_time', 'memory_mb']
+    metric_names = ['Execution Time (seconds)', 'Memory Usage (MB)']
+    for metric, metric_name in zip(metrics, metric_names):
+        tasks = df['task'].unique()
+        n_tasks = len(tasks)
+        cols = min(3, n_tasks)
+        rows = (n_tasks + cols - 1) // cols
         
-        # Create a grouped bar plot
-        sns.barplot(data=cross_os_df, x='task_with_size', y='cross_os_cv', hue='language')
-        plt.title('Cross-OS Performance Consistency by Language and Task-Size\n(Lower CV = More Consistent Across OSs)')
+        fig, axes = plt.subplots(rows, cols, figsize=(5*cols, 4*rows))
+        if n_tasks == 1:
+            axes = np.array([axes])
+        axes = axes.flatten()
+        
+        for i, task in enumerate(tasks):
+            if i < len(axes):
+                task_data = df[df['task'] == task]
+                sns.boxplot(data=task_data, x='os', y=metric, hue='language', 
+                           hue_order=df['language'].unique(), ax=axes[i])
+                axes[i].set_title(f'{task}')
+                axes[i].set_xlabel('Operating System')
+                axes[i].set_ylabel(metric_name)
+                axes[i].tick_params(axis='x', rotation=45)
+                if metric == 'execution_time':
+                    axes[i].set_yscale('log')
+                if i > 0:
+                    axes[i].get_legend().remove()
+                else:
+                    axes[i].legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Language')
+        
+        for i in range(len(tasks), len(axes)):
+            axes[i].set_visible(False)
+        
+        plt.suptitle(f'{metric_name.split(" ")[0]} by OS and Language for Each Data Processing Task', fontsize=16, y=0.98)
+        plt.tight_layout()
+        plt.savefig(f'{output_prefix}_{metric}_facet_os_language_task.png', dpi=300, bbox_inches='tight')
+        plt.close()
+
+    create_cross_os_consistency_plots(df, output_prefix)
+    create_os_performance_profile(df, output_prefix)
+
+# Cross-OS Consistency Plots
+def create_cross_os_consistency_plots(df, output_prefix):
+    cross_os_df = calculate_cross_os_consistency(df)
+    if cross_os_df.empty:
+        print("No cross-OS data available for consistency plots.")
+        return
+    metrics = ['execution_time', 'memory_mb']
+    metric_names = ['Execution Time', 'Memory Usage']
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    for i, (metric, metric_name) in enumerate(zip(metrics, metric_names)):
+        cv_col = f'{metric}_cv'
+        if cv_col in cross_os_df.columns:
+            pivot_cv = cross_os_df.pivot_table(values=cv_col, index='task', columns='language', aggfunc='mean')
+            sns.heatmap(pivot_cv, annot=True, fmt=".1f", cmap='viridis_r', ax=axes[i],cbar_kws={'label': 'Coefficient of Variation (%)'})
+            axes[i].set_title(f'Cross-OS Consistency of {metric_name}. Lower CV = More Consistent')
+    plt.tight_layout()
+    plt.savefig(f'{output_prefix}_cross_os_consistency_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # Cross OS Consistency by Language
+    plt.figure(figsize=(12, 8))
+    metric_data = []
+    for metric, metric_name in zip(metrics, metric_names):
+        cv_col = f'{metric}_cv'
+        if cv_col in cross_os_df.columns:
+            for language in cross_os_df['language'].unique():
+                lang_data = cross_os_df[cross_os_df['language'] == language]
+                if not lang_data.empty:
+                    metric_data.append({
+                        'language': language,
+                        'cv_mean': lang_data[cv_col].mean(),
+                        'cv_std': lang_data[cv_col].std(),
+                        'metric': metric_name
+                    })
+    if metric_data:
+        metric_df = pd.DataFrame(metric_data)
+        sns.barplot(data=metric_df, x='language', y='cv_mean', hue='metric')
+        plt.title('Average Cross-OS Consistency by Language and Metric')
         plt.ylabel('Coefficient of Variation (%)')
-        plt.xlabel('Task and Input Size')
-        plt.xticks(rotation=45)
+        plt.xlabel('Programming Language')
+        plt.legend(title='Metric')
+        plt.tight_layout()
+        plt.savefig(f'{output_prefix}_cross_os_consistency_by_language.png', dpi=300, bbox_inches='tight')
+        plt.close()
+
+# OS Performance Profile Plots
+def create_os_performance_profile(df, output_prefix):
+    metrics = ['execution_time', 'memory_mb']
+    metric_names = ['Execution Time', 'Memory Usage']
+    performance_data = []
+    for metric in metrics:
+        for (task, language), group in df.groupby(['task', 'language']):
+            if len(group['os'].unique()) > 1:
+                min_value = group[metric].min()
+                if min_value > 0:
+                    for os_name, os_group in group.groupby('os'):
+                        normalized_perf = os_group[metric].mean() / min_value
+                        performance_data.append({
+                            'os': os_name,
+                            'task': task,
+                            'language': language,
+                            'metric': metric.replace('_', ' ').title(),
+                            'normalized_performance': normalized_perf,
+                            'raw_performance': os_group[metric].mean()
+                        })
+    if performance_data:
+        perf_df = pd.DataFrame(performance_data)
+
+        plt.figure(figsize=(12, 8))
+        sns.boxplot(data=perf_df, x='os', y='normalized_performance', hue='metric')
+        plt.axhline(1, color='red', linestyle='--', label='Best Performance Baseline')
+        plt.title('OS Performance Profile (Normalized, lower is better)')
+        plt.ylabel('Normalized Performance')
+        plt.xlabel('Operating System')
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.tight_layout()
-        plt.savefig(f'{output_prefix}_cross_os_consistency.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{output_prefix}_os_performance_profile.png', dpi=300, bbox_inches='tight')
         plt.close()
+
+# Memory visualizations
+def create_memory_visualization(df, output_prefix):
+    # Memory Usage by OS and Task
+    plt.figure(figsize=(14, 8))
+    sns.boxplot(data=df, x='task', y='memory_mb', hue='os')
+    plt.title('Memory Usage by Data Processing Task and Operating System')
+    plt.xticks(rotation=45)
+    plt.ylabel('Memory Usage (megabytes(MB))')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Operating System')
+    plt.tight_layout()
+    plt.savefig(f'{output_prefix}_memory_usage_by_os_task.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+# Run all visualizations
+def create_visualizations(df, output_prefix):
+    create_comprehensive_plots(df, output_prefix)
+    create_memory_visualization(df, output_prefix)
 
 # Helper class to save report to file
 class ReportSaver:
@@ -245,65 +306,100 @@ def generate_report(df, output_prefix):
     report_lines.append(f"Operating Systems: {', '.join(df['os'].unique())}")
     report_lines.append(f"Languages: {', '.join(df['language'].unique())}")
     report_lines.append(f"Tasks: {', '.join(df['task'].unique())}")
+    report_lines.append(f"Input sizes: {', '.join(sorted(df['input_size'].astype(str).unique()))}")
 
-    # Cross-OS Consistency Analysis
-    report_lines.append("\nCross-OS Performance Consistency:")
-    report_lines.append('-' * 60)
-    report_lines.append("Lower Cross-OS CV = More Consistent Performance Across Operating Systems")
+    # Cross-OS Consistency
+    report_lines.append("\nCross-OS Consistency:")
+    report_lines.append('-' * 50)
     cross_os_df = calculate_cross_os_consistency(df)
+
     if not cross_os_df.empty:
-        cross_os_sorted = cross_os_df.sort_values('cross_os_cv').round(2)
-        report_lines.append(cross_os_sorted.to_string())
-        report_lines.append("\nKey Cross-OS Findings:")
-        report_lines.append('-' * 40)
-        most_consistent = cross_os_sorted.iloc[0]
-        least_consistent = cross_os_sorted.iloc[-1]
-        
-        report_lines.append(f"Most consistent across OSs: {most_consistent['language']} - {most_consistent['task']} (CV: {most_consistent['cross_os_cv']}%)")
-        report_lines.append(f"Least consistent across OSs: {least_consistent['language']} - {least_consistent['task']} (CV: {least_consistent['cross_os_cv']}%)")
-        
-        report_lines.append("\nOS Performance Rankings:")
-        os_performance = df.groupby('os')['execution_time'].mean().sort_values()
-        for i, (os_name, avg_time) in enumerate(os_performance.items(), 1):
-            report_lines.append(f"{i}. {os_name}: {avg_time:.2f}s average")
-            
+        metrics = ['execution_time', 'memory_mb']
+        metric_names = ['Execution Time', 'Memory Usage']
+        for metric, metric_name in zip(metrics, metric_names):
+            cv_col = f'{metric}_cv'
+            report_lines.append(f"\n{metric_name} Cross-OS Consistency:")
+            report_lines.append("-" * 50)
+
+            avg_cv = cross_os_df[cv_col].mean()
+            report_lines.append(f"Average Cross-OS Coefficient of Variation (CV): {avg_cv:.1f}%")
+            lang_consistency = cross_os_df.groupby('language')[cv_col].mean().sort_values()
+            report_lines.append(f"\nConsistency by Language (Lower CV = More Consistent):")
+            for lang, cv in lang_consistency.items():
+                report_lines.append(f" - {lang}: {cv:.1f}%")
+            if not cross_os_df[cv_col].isna().all():
+                most_consistent = cross_os_df.loc[cross_os_df[cv_col].idxmin()]
+                least_consistent = cross_os_df.loc[cross_os_df[cv_col].idxmax()]
+
+                report_lines.append(f"\nMost Consistent {metric_name}:")
+                report_lines.append(f"  {most_consistent['task_with_size']} ({most_consistent['language']})")
+                report_lines.append(f"  CV: {most_consistent[cv_col]:.1f}% across {most_consistent['os_list']}")
+                report_lines.append(f"\nLeast Consistent {metric_name}:")
+                report_lines.append(f"  {least_consistent['task_with_size']} ({least_consistent['language']})")
+                report_lines.append(f"  CV: {least_consistent[cv_col]:.1f}% across {least_consistent['os_list']}")
     else:
-        report_lines.append("Not enough cross-OS data for analysis.")
+        report_lines.append("No cross-OS data available for consistency analysis.")
 
-    # Summary Statistics
-    report_lines.append("\n1. Summary Statistics:")
-    report_lines.append('-' * 40)
-    summary_stats = calculate_summary_statistics(df)
-    report_lines.append(summary_stats.to_string())
-
-    # Performance Consistency
-    report_lines.append("\n2. Performance Consistency (Coefficient of Variation):")
-    report_lines.append('-' * 60)
-    cv_df = calculate_coefficient_of_variation(df)
-    report_lines.append("Lower CV Percentage = More Consistent Performance")
-    report_lines.append(cv_df.round(2).to_string())
-
-    # ANOVA Test Results
-    report_lines.append("\n3. Statistical Significance (ANOVA Test):")
-    report_lines.append('-' * 40)
-    anova_df = perform_anova_test(df)
-    if not anova_df.empty:
-        report_lines.append("A p-value < 0.05 indicates that the programming language choice significantly affects performance.")
-        report_lines.append(anova_df.round(4).to_string())
+    # ANOVA and Kruskal-Wallis Test Results
+    report_lines.append("\nStatistical Significance (ANOVA Test):")
+    report_lines.append('-' * 50)
+    stats_df = perform_cross_os__tests(df)
+    if not stats_df.empty:
+       for metric in ['execution_time', 'memory_mb']:
+            metric_data = stats_df[stats_df['metric'] == metric]
+            if not metric_data.empty:
+                significant_count = metric_data['significant_anova'].sum()
+                total_tests = len(metric_data)
+                
+                report_lines.append(f"\n{metric.replace('_', ' ').title()}:")
+                report_lines.append(f"  Significant OS differences in {significant_count}/{total_tests} "f"cases ({significant_count/total_tests*100:.1f}%)")
     else:
-        report_lines.append("Not enough language variety to perform ANOVA tests.")
+        report_lines.append("No statistical test results available.")
     
     # Key Findings
-    report_lines.append("\n4. Key Findings:")
-    report_lines.append('-' * 40)
-    fastest_langs_by_task = df.groupby(['task']).apply(lambda x: x.loc[x['execution_time'].idxmin(), 'language'])
-    report_lines.append("Fastest Language by Task:")
-    for task, lang in fastest_langs_by_task.items():
-        report_lines.append(f" - {task}: {lang}")
+    report_lines.append("\nKey Findings:")
+    report_lines.append('-' * 50)
     
-    most_consistent_langs = cv_df.groupby('language')['time_cv'].mean().sort_values()
-    report_lines.append(f"\nMost consistent language (lowest avg CV): {most_consistent_langs.index[0]} ({most_consistent_langs.iloc[0]:.1f}%)")
-    report_lines.append(f"Least consistent language (highest avg CV): {most_consistent_langs.index[-1]} ({most_consistent_langs.iloc[-1]:.1f}%)")
+    if not cross_os_df.empty:
+        # Overall consistency ranking
+        consistency_ranking = {}
+        for metric in ['execution_time', 'memory_mb']:
+            cv_col = f'{metric}_cv'
+            lang_consistency = cross_os_df.groupby('language')[cv_col].mean().sort_values()
+            if not lang_consistency.empty:
+                consistency_ranking[metric] = lang_consistency
+        
+        report_lines.append("\nOverall Cross-OS Consistency Ranking:")
+        for metric, scores in consistency_ranking.items():
+            report_lines.append(f"\n{metric.replace('_', ' ').title()}:")
+            for i, (lang, score) in enumerate(scores.items()):
+                report_lines.append(f"  {i+1}. {lang}: {score:.1f}% CV")
+        
+        # OS Performance Characteristics
+        report_lines.append("\nOS PERFORMANCE CHARACTERISTICS:")
+        os_performance = df.groupby('os').agg({
+            'execution_time': 'mean',
+            'memory_mb': 'mean'
+        }).round(3)
+        
+        for os_name in os_performance.index:
+            time = os_performance.loc[os_name, 'execution_time']
+            memory = os_performance.loc[os_name, 'memory_mb']
+            report_lines.append(f"  {os_name}: Time={time}s, Memory={memory}MB")
+
+    if not cross_os_df.empty:
+        # Find most consistent combinations
+        consistent_combinations = cross_os_df.nsmallest(3, 'execution_time_cv')
+        report_lines.append("Most Consistent Cross-OS Performance:")
+        for _, combo in consistent_combinations.iterrows():
+            report_lines.append(f"  - Use {combo['language']} for {combo['task']} tasks")
+        
+        # Find best performing OS
+        fastest_os = df.groupby('os')['execution_time'].mean().idxmin()
+        most_efficient_os = df.groupby('os')['memory_mb'].mean().idxmin()
+        report_lines.append(f"\nOS Performance:")
+        report_lines.append(f"  - Fastest overall OS: {fastest_os}")
+        report_lines.append(f"  - Most memory-efficient OS: {most_efficient_os}")
 
     # Save report to file
     report_filename = f'{output_prefix}_report.txt'
@@ -321,8 +417,7 @@ def main(csv_file, output_prefix):
     saver = ReportSaver(console_log_file)
     sys.stdout = saver
     df = load_and_clean_data(csv_file)
-    create_cross_os_plots(df, output_prefix)
-    create_boxplots(df, output_prefix)
+    create_visualizations(df, output_prefix)
     generate_report(df, output_prefix)
     df.to_csv(f'{output_prefix}_processed_combined_data.csv', index=False)
     sys.stdout = saver.terminal
@@ -330,4 +425,4 @@ def main(csv_file, output_prefix):
     return df
 
 if __name__ == "__main__":
-    main('data/All_languages_combined_data/combined_python_C_data.csv', 'python3_and_C_cross_os_analysis')
+    main('data/All_languages_combined_data/combined_python3_C_java_data.csv', 'python3_C_java_cross_os_analysis')

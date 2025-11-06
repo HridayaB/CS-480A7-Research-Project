@@ -31,6 +31,6 @@ def combine_csv_files(input_folder, output_file):
 
 
 if __name__ == "__main__":
-    input_folder = "data/All_languages_combined_data"  
-    output_file = "data/combined_python_C_data.csv" 
+    input_folder = "AllData"  
+    output_file = "data/combined_python3_C_java_data.csv" 
     combine_csv_files(input_folder, output_file)
