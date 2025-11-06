@@ -1,0 +1,87 @@
+
+============================================================
+Cross Operating System Data Analysis Report
+============================================================
+
+Dataset Overview:
+----------------------------------------
+Total records: 954
+Operating Systems: Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3
+Languages: C, Java, Python 3
+Tasks: binarytrees, fannkuchredux, fasta, mandelbrot
+Input sizes: 10, 1000, 12, 16000, 21, 250000, 25000000, 7
+
+Cross-OS Consistency:
+--------------------------------------------------
+
+Execution Time Cross-OS Consistency:
+--------------------------------------------------
+Average Cross-OS Coefficient of Variation (CV): 14.2%
+
+Consistency by Language (Lower CV = More Consistent):
+ - Java: 6.3%
+ - C: 11.1%
+ - Python 3: 25.2%
+
+Most Consistent Execution Time:
+  mandelbrot-16000 (Java)
+  CV: 1.2% across Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3
+
+Least Consistent Execution Time:
+  fasta-25000000 (Python 3)
+  CV: 88.4% across Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3
+
+Memory Usage Cross-OS Consistency:
+--------------------------------------------------
+Average Cross-OS Coefficient of Variation (CV): 3.7%
+
+Consistency by Language (Lower CV = More Consistent):
+ - Java: 2.5%
+ - C: 3.9%
+ - Python 3: 4.8%
+
+Most Consistent Memory Usage:
+  binarytrees-21 (C)
+  CV: 0.0% across Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3
+
+Least Consistent Memory Usage:
+  binarytrees-7 (Python 3)
+  CV: 6.9% across Manjaro GNOME 25.0.10, Manjaro GNOME 25.0.10 Minimal, Ubuntu Desktop 24.04.3, Ubuntu Server 24.04.3
+
+Statistical Significance (ANOVA Test):
+--------------------------------------------------
+
+Execution Time:
+  Significant OS differences in 21/24 cases (87.5%)
+
+Memory Mb:
+  Significant OS differences in 23/24 cases (95.8%)
+
+Key Findings:
+--------------------------------------------------
+
+Overall Cross-OS Consistency Ranking:
+
+Execution Time:
+  1. Java: 6.3% CV
+  2. C: 11.1% CV
+  3. Python 3: 25.2% CV
+
+Memory Mb:
+  1. Java: 2.5% CV
+  2. C: 3.9% CV
+  3. Python 3: 4.8% CV
+
+OS PERFORMANCE CHARACTERISTICS:
+  Manjaro GNOME 25.0.10: Time=98.032s, Memory=110.853MB
+  Manjaro GNOME 25.0.10 Minimal: Time=99.366s, Memory=111.33MB
+  Ubuntu Desktop 24.04.3: Time=108.388s, Memory=105.35MB
+  Ubuntu Server 24.04.3: Time=91.312s, Memory=108.015MB
+Most Consistent Cross-OS Performance:
+  - Use Java for mandelbrot tasks
+  - Use C for fasta tasks
+  - Use Java for fannkuchredux tasks
+
+OS Performance:
+  - Fastest overall OS: Ubuntu Server 24.04.3
+  - Most memory-efficient OS: Ubuntu Desktop 24.04.3
