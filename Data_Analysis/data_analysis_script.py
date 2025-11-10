@@ -269,10 +269,76 @@ def create_memory_visualization(df, output_prefix):
     plt.savefig(f'{output_prefix}_memory_usage_by_os_task.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+# Significace tests visualizations
+def create_significance_visualization(df, output_prefix):
+    stats_df = perform_cross_os__tests(df)  
+    
+    if stats_df.empty:
+        print("Not enough data for statistical significance heatmap.")
+        return
+    
+    metrics = ['execution_time', 'memory_mb']
+    metric_names = ['Execution Time', 'Memory Usage']
+    
+    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+    
+    for i, (metric, metric_name) in enumerate(zip(metrics, metric_names)):
+        metric_data = stats_df[stats_df['metric'] == metric].copy()
+        
+        if metric_data.empty:
+            continue
+            
+        pivot_data = metric_data.pivot_table(
+            values='p_value', 
+            index='task', 
+            columns='language', 
+            aggfunc='first' 
+        )
+        
+        significance_categories = pivot_data.copy()
+        significance_categories[pivot_data < 0.001] = 4  # Highly significant
+        significance_categories[(pivot_data >= 0.001) & (pivot_data < 0.01)] = 3  # Very significant
+        significance_categories[(pivot_data >= 0.01) & (pivot_data < 0.05)] = 2   # Significant
+        significance_categories[pivot_data >= 0.05] = 1  # Not significant
+        
+        cmap = plt.cm.get_cmap('RdYlGn', 4)
+        im = axes[i].imshow(significance_categories, cmap=cmap, aspect='auto', vmin=1, vmax=4)
+        axes[i].set_xticks(range(len(significance_categories.columns)))
+        axes[i].set_xticklabels(significance_categories.columns, rotation=45)
+        axes[i].set_yticks(range(len(significance_categories.index)))
+        axes[i].set_yticklabels(significance_categories.index)
+        axes[i].set_title(f'{metric_name} Statistical Significance')
+        for task_idx, task in enumerate(significance_categories.index):
+            for lang_idx, lang in enumerate(significance_categories.columns):
+                p_val = pivot_data.loc[task, lang] if not pd.isna(pivot_data.loc[task, lang]) else 1.0
+                color = 'white' if p_val < 0.05 else 'black'
+                if p_val < 1e-4:
+                    p_str = f'{p_val:.1e}'   
+                else:
+                    p_str = f'{p_val:.4f}' 
+
+                axes[i].text(lang_idx, task_idx, f'p={p_str}',
+                            ha='center', va='center', color=color, fontsize=8)
+
+    
+    fig.subplots_adjust(right=0.88, wspace=0.4)
+    cbar_ax = fig.add_axes([0.9, 0.25, 0.02, 0.5])
+    cbar = fig.colorbar(im, cax=cbar_ax)
+    cbar.set_ticks([1.375, 2.125, 2.875, 3.625])
+    cbar.set_ticklabels([
+        'Not Significant\n(p ≥ 0.05)',
+        'Significant\n(p < 0.05)',
+        'Very Significant\n(p < 0.01)',
+        'Highly Significant\n(p < 0.001)'
+    ])
+    plt.savefig(f'{output_prefix}_statistical_significance_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
 # Run all visualizations
 def create_visualizations(df, output_prefix):
     create_comprehensive_plots(df, output_prefix)
     create_memory_visualization(df, output_prefix)
+    create_significance_visualization(df, output_prefix)
 
 # Helper class to save report to file
 class ReportSaver:
